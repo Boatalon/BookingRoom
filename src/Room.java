@@ -1,15 +1,28 @@
-
+import java.util.ArrayList;
 
 public class Room {
 	private String roomID;
 	private boolean available[];
 	
+	private static ArrayList<Room> roomList = new ArrayList<Room>();
+	
 	public Room(String roomID) {
-		this.roomID = roomID;
-		available = new boolean[10];
+		boolean check = true;
+		if(!roomList.isEmpty()) {
+			for(Room r : roomList) {
+				if(r.getRoomID().equals(roomID))
+					check = false;
+			}
+		}
 		
-		for(int i=0;i<10;i++) {
-			available[i] = true;
+		if(check) {
+			this.roomID = roomID;
+			available = new boolean[10];
+			
+			for(int i=0;i<10;i++) {
+				available[i] = true;
+			}
+			roomList.add(this);
 		}
 	}
 
@@ -32,5 +45,21 @@ public class Room {
 	public void setBooked(int index) {
 		available[index] = false;
 	}
+
+	public static ArrayList<Room> getRoomList() {
+		return roomList;
+	}
 	
+	public static void removeRoom(String roomID) {
+		for(int i=0; i<roomList.size(); i++) {
+			if(roomList.get(i).getRoomID().equals(roomID)) {
+				roomList.remove(i);
+			}
+		}
+	}
+	
+	@Override
+	public String toString() {
+		return this.getRoomID();
+	}
 }

@@ -1,4 +1,4 @@
-
+import java.util.ArrayList;
 
 public class User {
 	protected int maxDay;
@@ -7,10 +7,25 @@ public class User {
 	protected String username;
 	protected String password;
 	
+	private static ArrayList<User> userList = new ArrayList<User>();
+	
 	public User(String username, String password) {
-		this.username = username;
-		this.password = password;
-		bookedHrs = 0;
+		boolean check = true;
+		if(!userList.isEmpty()) {
+			for(User u : userList) {
+				if(u.getUsername().equals(username)) {
+					System.out.println("this username already used !!");
+					check = false;
+				}
+			}
+		}
+		if(check) {
+				this.username = username;
+				this.password = password;
+				bookedHrs = 0;
+				userList.add(this);
+				System.out.println("Sign Up success !!");
+		}
 	}
 	
 	public int getMaxDay() {
@@ -53,6 +68,13 @@ public class User {
 	public void setUsername(String username) {
 		this.username = username;
 	}
-	
 
+	public static ArrayList<User> getUserList() {
+		return userList;
+	}
+
+	public static void setUserList(ArrayList<User> userList) {
+		User.userList = userList;
+	}
+	
 }
