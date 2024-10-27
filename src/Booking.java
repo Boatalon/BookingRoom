@@ -4,7 +4,7 @@ import java.util.ArrayList;
 public class Booking {
 	private User user;
 	private Room room;
-	private int duration;
+	private int duration;  
 	private int start;
 	
 	private static ArrayList<Booking> bookingList = new ArrayList<Booking>();
