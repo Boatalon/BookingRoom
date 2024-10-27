@@ -9,7 +9,6 @@ public class Library {
 		A1.addRoom("CHAO NI MA");
 		A1.addRoom("ABC");
 		A1.addRoom("123");
-				
 		A1.showRoom();
 		new Booking(p1,Room.getRoomList().get(0),1,2);
 		
