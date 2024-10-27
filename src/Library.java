@@ -3,7 +3,6 @@
 public class Library {
 
 	public static void main(String[] args) {	
-		Booking.initialize();
 		User p1 = new Student("possza","1234");
 		Admin A1 = new Admin("A111","inwza007");
 		
