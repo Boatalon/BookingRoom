@@ -1,93 +1,60 @@
 package Library_app_OOP_Proj;
 
-//User.java
-import java.io.Serializable;
+//User.java 
 import java.util.ArrayList;
 
-public class User implements Serializable {
-	private static final long serialVersionUID = 1L;
- 
-	protected int maxAdvanceDay;  // จำนวนวันที่จองล่วงหน้าได้
-	protected int maxHrs;         // จำนวนชั่วโมงที่จองได้ต่อวัน
-	protected int bookedHrs;
-	protected String username;
-	protected String password;
-	protected String userType;
- 
-	private static ArrayList<User> userList = new ArrayList<>();
- 
-	static {
-		userList = FileHandler.loadUsers();
-	}
- 
-	public User(String username, String password, String userType) {
-		if (isUsernameUnique(username)) {
-			this.username = username;
-			this.password = password;
-			this.userType = userType;
-			this.bookedHrs = 0;
-         
-			switch (userType) {
-				case "STUDENT":
-					this.maxAdvanceDay = 1;  // นักศึกษาจองล่วงหน้าได้ 1 วัน
-					this.maxHrs = 3;         // จองได้ 3 ชั่วโมงต่อวัน
-					break;
-				case "LECTURER":
-					this.maxAdvanceDay = 7;  // อาจารย์จองล่วงหน้าได้ 7 วัน
-					this.maxHrs = 5;         // จองได้ 5 ชั่วโมงต่อวัน
-					break;
-				case "GENERAL":
-					this.maxAdvanceDay = 1;  // บุคคลทั่วไปจองล่วงหน้าได้ 1 วัน
-					this.maxHrs = 3;         // จองได้ 3 ชั่วโมงต่อวัน
-					break;
-			}
-         
-			userList.add(this);
-			saveToFile();
-		} else {
-			throw new IllegalArgumentException("Username already exists");
-		}
-	}
+public abstract class User {
+protected String username;
+protected String password;
+protected String userType;
+protected int maxHours; // จำนวนชั่วโมงที่จองได้ต่อวัน
+protected int maxAdvanceDays; // จำนวนวันที่จองล่วงหน้าได้
+private static ArrayList<User> userList = new ArrayList<>();
 
-	private boolean isUsernameUnique(String username) {
-		return userList.stream().noneMatch(u -> u.getUsername().equals(username));
-	}
+static {
+   userList = FileHandler.loadUsers();
+}
 
-	public void addBookedHrs(int duration) {
-		this.bookedHrs += duration;
-		saveToFile();
-	}
+protected User(String username, String password, String userType) {
+   if (isUsernameAvailable(username)) {
+       this.username = username;
+       this.password = password;
+       this.userType = userType;
+       setUserLimits();
+       userList.add(this);
+       FileHandler.saveUsers(userList);
+   } else {
+       throw new IllegalArgumentException("Username already exists");
+   }
+}
 
-	public void reduceBookedHrs(int duration) {
-		this.bookedHrs -= duration;
-		if (this.bookedHrs < 0) this.bookedHrs = 0;
-		saveToFile();
-	}
+private void setUserLimits() {
+   switch (userType) {
+       case "STUDENT":
+           maxHours = 3;
+           maxAdvanceDays = 1;
+           break;
+       case "LECTURER":
+           maxHours = 5;
+           maxAdvanceDays = 7;
+           break;
+       case "GENERAL":
+           maxHours = 3;
+           maxAdvanceDays = 1;
+           break;
+   }
+}
 
-	public static void saveToFile() {
-		FileHandler.saveUsers(userList);
-	}
+private boolean isUsernameAvailable(String username) {
+   return userList.stream()
+       .noneMatch(u -> u.username.equals(username));
+}
 
-	// Getters
-	public int getMaxAdvanceDay() { 
-		return maxAdvanceDay;
-	}
-	public int getMaxHrs() {
-		return maxHrs; 
-	}
-	public int getBookedHrs() {
-		return bookedHrs;
-	}
-	public String getUsername() {
-		return username; 
-	}
-	public String getUserType() {
-		return userType;
-	}
-	public String getPassword() {
-		return password; 
-	}
-	public static ArrayList<User> getUserList() {
-		return userList; 
-	}
+// Getters
+public String getUsername() { return username; }
+public String getPassword() { return password; }
+public String getUserType() { return userType; }
+public int getMaxHours() { return maxHours; }
+public int getMaxAdvanceDays() { return maxAdvanceDays; }
+public static ArrayList<User> getUserList() { return userList; }
 }

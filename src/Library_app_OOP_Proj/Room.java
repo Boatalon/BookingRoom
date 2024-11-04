@@ -5,110 +5,90 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 public class Room {
-	private String roomID;
-	private ArrayList<TimeSlot> bookings;
-	private static ArrayList<Room> roomList = new ArrayList<>();
- 
-	static {
-		roomList = FileHandler.loadRooms();
-	}
+private String roomId;
+private ArrayList<TimeSlot> bookings;
+private static ArrayList<Room> roomList = new ArrayList<>();
 
-	public Room(String roomID) {
-		if (isRoomIDUnique(roomID)) {
-			this.roomID = roomID;
-			this.bookings = new ArrayList<>();
-			roomList.add(this);
-			saveToFile();
-		} else {
-			throw new IllegalArgumentException("Room ID already exists");
-		}
-	}
+static {
+   roomList = FileHandler.loadRooms();
+}
 
-	private boolean isRoomIDUnique(String roomID) {
-		return roomList.stream().noneMatch(r -> r.getRoomID().equals(roomID));
-	}
+public Room(String roomId) {
+   if (isRoomIdAvailable(roomId)) {
+       this.roomId = roomId;
+       this.bookings = new ArrayList<>();
+       roomList.add(this);
+       FileHandler.saveRooms(roomList);
+   } else {
+       throw new IllegalArgumentException("Room ID already exists");
+   }
+}
 
-	public static void removeRoom(String roomID) {
-		roomList.removeIf(r -> r.getRoomID().equals(roomID));
-		saveToFile();
-	}
+public static void removeRoom(String roomId) {
+   roomList.removeIf(r -> r.roomId.equals(roomId));
+   FileHandler.saveRooms(roomList);
+}
 
-	public boolean isAvailable(String date, int start, int duration) {
-		TimeSlot targetSlot = findTimeSlot(date);
-		if (targetSlot == null) return true;
-     
-		for (int i = 0; i < duration; i++) {
-			if (targetSlot.isTimeBooked(start + i)) {
-				return false;
-			}
-		}
-		return true;
-	}
+private boolean isRoomIdAvailable(String roomId) {
+   return roomList.stream()
+       .noneMatch(r -> r.roomId.equals(roomId));
+}
 
-	public void addBooking(String date, int start, int duration) {
-		TimeSlot slot = findOrCreateTimeSlot(date);
-		for (int i = 0; i < duration; i++) {
-			slot.bookTime(start + i);
-		}
-		saveToFile();
-	}
+public boolean isAvailable(String date, int startHour, int duration) {
+   TimeSlot slot = findTimeSlot(date);
+   if (slot == null) return true;
 
-	public void cancelBooking(String date, int start, int duration) {
-		TimeSlot slot = findTimeSlot(date);
-		if (slot != null) {
-			for (int i = 0; i < duration; i++) {
-				slot.cancelTime(start + i);
-			}
-			saveToFile();
-		}
-	}
+   for (int hour = startHour; hour < startHour + duration; hour++) {
+       if (slot.isTimeBooked(hour)) return false;
+   }
+   return true;
+}
 
-	private TimeSlot findTimeSlot(String date) {
-		for (TimeSlot slot : bookings) {
-			if (slot.getDate().equals(date)) {
-				return slot;
-			}
-		}
-		return null;
-	}
+public void addBooking(String date, int startHour, int duration) {
+   TimeSlot slot = findOrCreateTimeSlot(date);
+   for (int hour = startHour; hour < startHour + duration; hour++) {
+       slot.bookTime(hour);
+   }
+   FileHandler.saveRooms(roomList);
+}
 
-	private TimeSlot findOrCreateTimeSlot(String date) {
-		TimeSlot slot = findTimeSlot(date);
-		if (slot == null) {
-			slot = new TimeSlot(date);
-			bookings.add(slot);
-		}
-		return slot;
-	}
+public void cancelBooking(String date, int startHour, int duration) {
+   TimeSlot slot = findTimeSlot(date);
+   if (slot != null) {
+       for (int hour = startHour; hour < startHour + duration; hour++) {
+           slot.cancelTime(hour);
+       }
+       FileHandler.saveRooms(roomList);
+   }
+}
 
-	public void addTimeSlot(String date, boolean[] slots) {
-		TimeSlot slot = new TimeSlot(date, slots);
-		bookings.add(slot);
-	}
+private TimeSlot findTimeSlot(String date) {
+   for (TimeSlot slot : bookings) {
+       if (slot.getDate().equals(date)) {
+           return slot;
+       }
+   }
+   return null;
+}
 
-	public static void saveToFile() {
-		FileHandler.saveRooms(roomList);
-	}
+private TimeSlot findOrCreateTimeSlot(String date) {
+   TimeSlot slot = findTimeSlot(date);
+   if (slot == null) {
+       slot = new TimeSlot(date);
+       bookings.add(slot);
+   }
+   return slot;
+}
 
-	public String getRoomID() {
-		return roomID;
-	}
-	public ArrayList<TimeSlot> getBookings() {
-		return bookings; 
-	}
-	public static ArrayList<Room> getRoomList() {
-		return roomList; 
-	}
-
-	// TimeSlot inner class
+// TimeSlot inner class
 	public static class TimeSlot {
 		private String date;
-		private boolean[] timeSlots;
+		private boolean[] timeSlots; // 24 ชั่วโมง
 
 		public TimeSlot(String date) {
 			this.date = date;
 			this.timeSlots = new boolean[24];
-        	Arrays.fill(timeSlots, false);
+			Arrays.fill(timeSlots, false);
 		}
 
 		public TimeSlot(String date, boolean[] slots) {
@@ -116,22 +96,31 @@ public class Room {
 			this.timeSlots = slots;
 		}
 
-		public String getDate() {	
-			return date;
+		public String getDate() { 
+			return date; 
 		}
-		public boolean[] getTimeSlots() {
-			return timeSlots; 
+
+		public boolean[] getTimeSlots() {  // เพิ่ม getter สำหรับ timeSlots
+			return timeSlots;
 		}
-		public boolean isTimeBooked(int hour) {
+
+		public boolean isTimeBooked(int hour) { 
 			return timeSlots[hour]; 
 		}
-		public void bookTime(int hour) {
+
+		public void bookTime(int hour) { 
 			timeSlots[hour] = true; 
 		}
+
 		public void cancelTime(int hour) { 
 			timeSlots[hour] = false; 
 		}
 	}
 
 
+
+	// Getters
+	public String getRoomId() { return roomId; }
+	public ArrayList<TimeSlot> getBookings() { return bookings; }
+	public static ArrayList<Room> getRoomList() { return roomList; }
 }

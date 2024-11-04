@@ -1,152 +1,120 @@
 package Library_app_OOP_Proj;
 
-
 //Booking.java
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.time.LocalDate;
 
 public class Booking {
-	private User user;
-	private Room room;
-	private String date;
-	private int start;
-	private int duration;
-	private String status;
- 
-	private static ArrayList<Booking> bookingList = new ArrayList<>();
- 
-	static {
-		bookingList = FileHandler.loadBookings();
-	}
+ private User user;
+ private Room room;
+ private String date;
+ private int startHour;
+ private int duration;
+ private String status;
+ private static ArrayList<Booking> bookingList = new ArrayList<>();
 
-	public Booking(User user, Room room, String date, int start, int duration) {
-		if (validateBooking(user, room, date, start, duration)) {
-			this.user = user;
-			this.room = room;
-			this.date = date;
-			this.start = start;
-			this.duration = duration;
-			this.status = "ACTIVE";
-         
-			room.addBooking(date, start, duration);
-			user.addBookedHrs(duration);
-			bookingList.add(this);
-			saveToFile();
-		}
-	}
+ static {
+     bookingList = FileHandler.loadBookings();
+ }
 
-	private boolean validateBooking(User user, Room room, String date, int start, int duration) {
-		// ตรวจสอบจำนวนวันที่จองล่วงหน้า
-		LocalDate bookingDate = LocalDate.parse(date);
-		LocalDate today = LocalDate.now();
-		long daysInAdvance = ChronoUnit.DAYS.between(today, bookingDate);
+ public Booking(User user, Room room, String date, int startHour, int duration) {
+     validateBooking(user, room, date, startHour, duration);
      
-		if (daysInAdvance < 0) {
-			throw new IllegalArgumentException("Cannot book for past dates");
-		}
+     this.user = user;
+     this.room = room;
+     this.date = date;
+     this.startHour = startHour;
+     this.duration = duration;
+     this.status = "ACTIVE";
+
+     room.addBooking(date, startHour, duration);
+     bookingList.add(this);
+     FileHandler.saveBookings(bookingList);
+ }
+
+ private void validateBooking(User user, Room room, String date, int startHour, int duration) {
+     // ตรวจสอบวันที่จอง
+     LocalDate bookingDate = LocalDate.parse(date);
+     LocalDate today = LocalDate.now();
+     long daysAhead = ChronoUnit.DAYS.between(today, bookingDate);
      
-		if (daysInAdvance > user.getMaxAdvanceDay()) {
-			throw new IllegalArgumentException("Cannot book more than " + 
-					user.getMaxAdvanceDay() + " days in advance");
-		}
-
-		// ตรวจสอบจำนวนชั่วโมงต่อวัน
-		if (duration > user.getMaxHrs()) {
-			throw new IllegalArgumentException("Cannot book more than " + 
-					user.getMaxHrs() + " hours per day");
-		}
-
-		// ตรวจสอบจำนวนชั่วโมงที่จองในวันนั้น
-		int bookedHoursForDay = 0;
-		for (Booking b : bookingList) {
-			if (b.getUser().equals(user) && 
-					b.getDate().equals(date) && 
-					b.getStatus().equals("ACTIVE")) {
-				bookedHoursForDay += b.getDuration();
-			}
-		}
+     if (daysAhead < 0) {
+         throw new IllegalArgumentException("Cannot book past dates");
+     }
      
-		if (bookedHoursForDay + duration > user.getMaxHrs()) {
-			throw new IllegalArgumentException("Would exceed maximum hours per day");
-		}
+     if (daysAhead > user.getMaxAdvanceDays()) {
+         throw new IllegalArgumentException(
+             "Cannot book more than " + user.getMaxAdvanceDays() + " days ahead"
+         );
+     }
 
-		// ตรวจสอบว่าห้องว่างไหม
-		if (!room.isAvailable(date, start, duration)) {
-			throw new IllegalArgumentException("Room not available for selected time");
-		}
+     // ตรวจสอบจำนวนชั่วโมงที่จอง
+     if (duration > user.getMaxHours()) {
+         throw new IllegalArgumentException(
+             "Cannot book more than " + user.getMaxHours() + " hours"
+         );
+     }
 
-		return true;
-	}
+     // ตรวจสอบจำนวนชั่วโมงรวมในวันนั้น
+     int totalHours = getTotalBookedHours(user, date);
+     if (totalHours + duration > user.getMaxHours()) {
+         throw new IllegalArgumentException(
+             "Would exceed maximum " + user.getMaxHours() + " hours per day"
+         );
+     }
 
-	public void cancelBooking() {
-		if (status.equals("ACTIVE")) {
-			status = "CANCELLED";
-			room.cancelBooking(date, start, duration);
-			user.reduceBookedHrs(duration);
-			saveToFile();
-		}
-	}
+     // ตรวจสอบว่าห้องว่าง
+     if (!room.isAvailable(date, startHour, duration)) {
+         throw new IllegalArgumentException("Room is not available for selected time");
+     }
+ }
 
-	public static void saveToFile() {
-			FileHandler.saveBookings(bookingList);
-	}
+ private int getTotalBookedHours(User user, String date) {
+     return bookingList.stream()
+         .filter(b -> b.user.equals(user) && 
+                     b.date.equals(date) && 
+                     b.status.equals("ACTIVE"))
+         .mapToInt(b -> b.duration)
+         .sum();
+ }
 
-	public static ArrayList<Booking> getBookingsByDate(String date) {
-		ArrayList<Booking> dateBookings = new ArrayList<>();
-		for (Booking b : bookingList) {
-			if (b.getDate().equals(date) && b.getStatus().equals("ACTIVE")) {
-				dateBookings.add(b);
-			}
-		}
-		return dateBookings;
-	}
+ public void cancel() {
+     if (status.equals("ACTIVE")) {
+         status = "CANCELLED";
+         room.cancelBooking(date, startHour, duration);
+         FileHandler.saveBookings(bookingList);
+     }
+ }
 
-	public static ArrayList<Booking> getActiveBookingsByRoom(Room room) {
-		ArrayList<Booking> result = new ArrayList<>();
-		for (Booking b : bookingList) {
-			if (b.room.equals(room) && b.status.equals("ACTIVE")) {
-				result.add(b);
-			}
-		}
-		return result;
-	}
+ public static ArrayList<Booking> getActiveBookings() {
+     ArrayList<Booking> active = new ArrayList<>();
+     for (Booking b : bookingList) {
+         if (b.status.equals("ACTIVE")) {
+             active.add(b);
+         }
+     }
+     return active;
+ }
 
-	public static ArrayList<Booking> getActiveBookingsByUser(User user) {
-		ArrayList<Booking> result = new ArrayList<>();
-		for (Booking b : bookingList) {
-			if (b.user.equals(user) && b.status.equals("ACTIVE")) {
-				result.add(b);
-			}
-		}	
-		return result;
-	}
+ public static ArrayList<Booking> getBookingsByDate(String date) {
+     ArrayList<Booking> dateBookings = new ArrayList<>();
+     for (Booking b : bookingList) {
+         if (b.date.equals(date) && b.status.equals("ACTIVE")) {
+             dateBookings.add(b);
+         }
+     }
+     return dateBookings;
+ }
 
-	// Getters
-	public User getUser() {
-		return user;
-	}
-	public Room getRoom() {
-		return room; 
-	}
-	public String getDate() {
-		return date; 
-	}
-	public int getStart() {
-		return start; 
-	}
-	public int getDuration() {
-		return duration;
-	}
-	public String getStatus() { 
-		return status; 
-	}
-	public static ArrayList<Booking> getBookingList() {
-		return bookingList; 
-	}
+ // Getters
+ public User getUser() { return user; }
+ public Room getRoom() { return room; }
+ public String getDate() { return date; }
+ public int getStartHour() { return startHour; }
+ public int getDuration() { return duration; }
+ public String getStatus() { return status; }
+ public static ArrayList<Booking> getBookingList() { return bookingList; }
+
 
 }

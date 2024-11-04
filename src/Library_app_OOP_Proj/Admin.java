@@ -4,62 +4,51 @@ package Library_app_OOP_Proj;
 import java.util.ArrayList;
 
 public class Admin {
-	private String username;
-	private String password;
-	private static ArrayList<Admin> adminList = new ArrayList<>();
- 
-	static {
-		adminList = FileHandler.loadAdmins();
-	}
- 
-	public Admin(String username, String password) {
-		if (isUsernameUnique(username)) {
-			this.username = username;
-			this.password = password;
-			adminList.add(this);
-			saveToFile();
-		} else {
-			throw new IllegalArgumentException("Admin username already exists");
-   	 	}
-	}
+private String username;
+private String password;
+private static ArrayList<Admin> adminList = new ArrayList<>();
 
-	private boolean isUsernameUnique(String username) {
-		return adminList.stream().noneMatch(a -> a.getUsername().equals(username));
-	}
+static {
+   adminList = FileHandler.loadAdmins();
+}
 
-	public void addRoom(String roomID) {
-		new Room(roomID);
-	}
- 
-	public void removeRoom(String roomID) {
-		Room.removeRoom(roomID);
-	}
+public Admin(String username, String password) {
+   if (isUsernameAvailable(username)) {
+       this.username = username;
+       this.password = password;
+       adminList.add(this);
+       FileHandler.saveAdmins(adminList);
+   } else {
+       throw new IllegalArgumentException("Admin username already exists");
+   }
+}
 
-	public void cancelBooking(String roomID, String date, int startTime) {
-		for (Booking b : Booking.getBookingList()) {
-			if (b.getRoom().getRoomID().equals(roomID) && 
-				b.getDate().equals(date) && 
-				b.getStart() == startTime) {
-				b.cancelBooking();
-				break;
-			}
-		}
-	}
+private boolean isUsernameAvailable(String username) {
+   return adminList.stream()
+       .noneMatch(a -> a.username.equals(username));
+}
 
-	public static void saveToFile() {
-		FileHandler.saveAdmins(adminList);
-	}
+public void addRoom(String roomId) {
+   new Room(roomId);
+}
 
-	// Getters
-	public String getUsername() {
-		return username; 
-	}
-	public String getPassword() {
-		return password; 
-	}
-	public static ArrayList<Admin> getAdminList() {
-		return adminList; 
-	}
+public void removeRoom(String roomId) {
+   Room.removeRoom(roomId);
+}
 
-	
+public void cancelBooking(String roomId, String date, int startHour) {
+   for (Booking booking : Booking.getBookingList()) {
+       if (booking.getRoom().getRoomId().equals(roomId) && 
+           booking.getDate().equals(date) && 
+           booking.getStartHour() == startHour) {
+           booking.cancel();
+           break;
+       }
+   }
+}
+
+// Getters
+public String getUsername() { return username; }
+public String getPassword() { return password; }
+public static ArrayList<Admin> getAdminList() { return adminList; }
 }
