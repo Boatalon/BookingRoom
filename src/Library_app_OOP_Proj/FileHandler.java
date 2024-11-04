@@ -37,27 +37,20 @@ public class FileHandler {
             for (Room room : rooms) {
                 writer.println(room.getRoomId());
                 for (Room.TimeSlot slot : room.getBookings()) {
-                    writer.println(slot.getDate() + "," + 
-                                 Arrays.toString(slot.getTimeSlots()));  // ใช้ getter แทนการเข้าถึงโดยตรง
+                    writer.println(slot.getDate() + "," + Arrays.toString(slot.getTimeSlots()));
                 }
-                writer.println("---");
+                writer.println("---");  // ใช้เป็นตัวแบ่งระหว่างห้อง
             }
         } catch (IOException e) {
             System.err.println("Error saving rooms: " + e.getMessage());
         }
     }
 
+
     public static void saveBookings(ArrayList<Booking> bookings) {
         try (PrintWriter writer = new PrintWriter(new FileWriter(BOOKINGS_FILE))) {
             for (Booking booking : bookings) {
-                writer.printf("%s,%s,%s,%d,%d,%s\n",
-                    booking.getUser().getUsername(),
-                    booking.getRoom().getRoomId(),
-                    booking.getDate(),
-                    booking.getStartHour(),
-                    booking.getDuration(),
-                    booking.getStatus()
-                );
+                writer.printf("%s,%s,%s,%d,%d,%s\n", booking.getUser().getUsername(), booking.getRoom().getRoomId(), booking.getDate(), booking.getStartHour(), booking.getDuration(), booking.getStatus());
             }
         } catch (IOException e) {
             System.err.println("Error saving bookings: " + e.getMessage());
@@ -67,11 +60,7 @@ public class FileHandler {
     public static void saveUsers(ArrayList<User> users) {
         try (PrintWriter writer = new PrintWriter(new FileWriter(USERS_FILE))) {
             for (User user : users) {
-                writer.printf("%s,%s,%s\n",
-                    user.getUsername(),
-                    user.getPassword(),
-                    user.getUserType()
-                );
+                writer.printf("%s,%s,%s\n", user.getUsername(), user.getPassword(), user.getUserType());
             }
         } catch (IOException e) {
             System.err.println("Error saving users: " + e.getMessage());
@@ -81,10 +70,7 @@ public class FileHandler {
     public static void saveAdmins(ArrayList<Admin> admins) {
         try (PrintWriter writer = new PrintWriter(new FileWriter(ADMINS_FILE))) {
             for (Admin admin : admins) {
-                writer.printf("%s,%s\n",
-                    admin.getUsername(),
-                    admin.getPassword()
-                );
+                writer.printf("%s,%s\n", admin.getUsername(), admin.getPassword());
             }
         } catch (IOException e) {
             System.err.println("Error saving admins: " + e.getMessage());
@@ -94,26 +80,32 @@ public class FileHandler {
     // Load methods
     public static ArrayList<Room> loadRooms() {
         ArrayList<Room> rooms = new ArrayList<>();
-        try (BufferedReader reader = new BufferedReader(new FileReader(ROOMS_FILE))) {
-            String line;
-            Room currentRoom = null;
+        try {
+            createFileIfNotExists(ROOMS_FILE);
             
-            while ((line = reader.readLine()) != null) {
-                if (line.trim().isEmpty()) continue;
-                
-                if (line.equals("---")) {
-                    currentRoom = null;
-                    continue;
-                }
-                
-                if (currentRoom == null) {
-                    currentRoom = new Room(line.trim());
-                    rooms.add(currentRoom);
-                } else {
-                    String[] parts = line.split(",");
-                    String date = parts[0];
-                    boolean[] slots = parseTimeSlots(parts[1]);
-                    currentRoom.addBooking(date, findFirstBookedHour(slots), countBookedHours(slots));
+            try (BufferedReader reader = new BufferedReader(new FileReader(ROOMS_FILE))) {
+                String line;
+                Room currentRoom = null;
+                while ((line = reader.readLine()) != null) {
+                    if (line.trim().isEmpty()) continue;
+                    
+                    if (line.equals("---")) {
+                        currentRoom = null;
+                        continue;
+                    }
+                    
+                    if (currentRoom == null) {
+                        // ใช้ createFromFile แทนการสร้าง Room ใหม่โดยตรง
+                        currentRoom = Room.createFromFile(line.trim());
+                        rooms.add(currentRoom);
+                    } else {
+                        String[] parts = line.split(",");
+                        if (parts.length >= 2) {
+                            String date = parts[0];
+                            boolean[] slots = parseTimeSlots(parts[1]);
+                            currentRoom.addBooking(date, findFirstBookedHour(slots), countBookedHours(slots));
+                        }
+                    }
                 }
             }
         } catch (IOException e) {
@@ -222,16 +214,21 @@ public class FileHandler {
     }
 
     private static User findUser(String username) {
-        return User.getUserList().stream()
-                .filter(u -> u.getUsername().equals(username))
-                .findFirst()
-                .orElse(null);
+        for (User user : User.getUserList()) {
+            if (user.getUsername().equals(username)) {
+                return user;
+            }
+        }
+        return null;
     }
 
     private static Room findRoom(String roomId) {
-        return Room.getRoomList().stream()
-                .filter(r -> r.getRoomId().equals(roomId))
-                .findFirst()
-                .orElse(null);
+        for (Room room : Room.getRoomList()) {
+            if (room.getRoomId().equals(roomId)) {
+                return room;
+            }
+        }
+        return null;
     }
+    
 }	
